@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Nebula</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23a280e5' d='M15.82 4.4A9 9 0 1 0 15.82 19.6A7.6 7.6 0 0 1 15.82 4.4Z'/%3E%3Cpath fill='%23a280e5' d='M17.6 7.2l.85 1.55 1.55.85-1.55.85-.85 1.55-.85-1.55-1.55-.85 1.55-.85z'/%3E%3C/svg%3E">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f6f1e7; --panel:#fdfbf6; --fg:#201e1a; --muted:#8a8371;
+    --line:#ddd3bf; --accent:#c15f3c; --accent-soft:#e8cdbd; --bad:#9e3b32;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#17140f; --panel:#201c15; --fg:#ede4d3; --muted:#776f5c;
+      --line:#35301f; --accent:#e8a87c; --accent-soft:#4a3524; --bad:#d07a6e;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; padding:24px; background:var(--bg); color:var(--fg);
+    font:16px/1.6 "Inter","Segoe UI",system-ui,sans-serif;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .box{
+    width:360px; max-width:100%; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:26px 26px 22px; text-align:center;
+    box-shadow:0 12px 40px rgba(0,0,0,.12);
+  }
+  svg.mark{width:54px;height:54px;display:block;margin:0 auto 12px;color:var(--accent)}
+  h1{margin:0 0 2px;font-size:20px;font-family:"Charter","Iowan Old Style",Georgia,serif;letter-spacing:.3px}
+  .sub{margin:0 0 20px;color:var(--muted);font-size:14px}
+  label{display:block;text-align:left;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input{
+    width:100%; padding:11px 12px; font:inherit; font-size:15px; text-align:center;
+    color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:9px;
+  }
+  input:focus{outline:none;border-color:var(--accent)}
+  button{
+    margin-top:12px; width:100%; padding:11px; font:inherit; font-weight:600; font-size:15px;
+    color:var(--panel); background:var(--accent); border:0; border-radius:9px; cursor:pointer;
+  }
+  button:hover{opacity:.9}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  #msg{min-height:20px;margin-top:12px;font-size:13px;color:var(--bad)}
+  .hint{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);
+        color:var(--muted);font-size:12px;line-height:1.5}
+  .hint a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="box">
+  <svg class="mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M15.82 4.4A9 9 0 1 0 15.82 19.6A7.6 7.6 0 0 1 15.82 4.4Z"/>
+    <path d="M17.6 7.2l.85 1.55 1.55.85-1.55.85-.85 1.55-.85-1.55-1.55-.85 1.55-.85z"/>
+  </svg>
+  <h1>Nebula</h1>
+  <p class="sub">Calm notes with a real editor.</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="off" autofocus>
+  <button id="go">Enter</button>
+  <div id="msg"></div>
+  <p class="hint">
+    Bookmark the page that opens and it will not ask again.<br>
+    The app itself is public: <a href="https://github.com/hero-999-dev/nebula/releases/latest">Releases</a>.
+  </p>
+</div>
+<script>
+// The documentation sits at p-<sha256("nebula:<password>")[:20]>/, worked out
+// here at submit time. Neither the password nor the folder name is in this
+// page's source, and a wrong password has nothing to probe: the folder it
+// derives simply does not exist.
+async function enter(){
+  const msg = document.getElementById('msg');
+  const go = document.getElementById('go');
+  const pass = document.getElementById('pw').value.trim();
+  if (!pass){ msg.textContent = 'Password is empty.'; return; }
+
+  go.disabled = true;
+  msg.style.color = 'var(--muted)';
+  msg.textContent = 'Checking…';
+
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('nebula:' + pass));
+  const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  const dir = 'p-' + hex.slice(0, 20) + '/';
+  try {
+    const r = await fetch(dir + 'index.html', { method: 'HEAD', cache: 'no-store' });
+    if (r.ok){ location.href = dir; return; }
+  } catch (e) {}
+  msg.style.color = 'var(--bad)';
+  msg.textContent = 'Wrong password.';
+  go.disabled = false;
+}
+document.getElementById('go').addEventListener('click', enter);
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') enter(); });
+</script>
+</body>
+</html>
